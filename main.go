@@ -21,18 +21,15 @@ type Paddle struct {
 }
 
 type Ball struct {
-	x, y int
+	x, y, velX, velY int
 }
 
-var paddleLeft, paddleRight *Paddle = &Paddle{}, &Paddle{}
-var ball *Ball = &Ball{}
-
-func renderHorizontal(screen tcell.Screen, x, y int, s string, style tcell.Style) {
-	for _, ch := range s {
-		screen.SetContent(x, y, ch, nil, style)
-		x++
-	}
-}
+// func renderHorizontal(screen tcell.Screen, x, y int, s string, style tcell.Style) {
+// 	for _, ch := range s {
+// 		screen.SetContent(x, y, ch, nil, style)
+// 		x++
+// 	}
+// }
 
 func renderChar(screen tcell.Screen, x, y, w, h int, ch rune, style tcell.Style) {
 	for i := 0; i < w; i++ {
@@ -59,39 +56,42 @@ func main() {
 	// x-axis right, y-axis down
 	screen := initScreen()
 	screenW, screenH = screen.Size()
+
+	var paddleLeft, paddleRight *Paddle = &Paddle{}, &Paddle{}
+	var ball *Ball = &Ball{}
+
 	initState(screen, paddleLeft, paddleRight, ball)
 
 	// start the background process for getting the user input
 	// if user presses any key, its detail is sent through a channel to the
 	// foreground process
 	keyPressedChan := initPlayerInputProcess(screen)
-	for {
-		renderState(screen, paddleLeft, paddleRight, ball)
-		time.Sleep(16 * time.Millisecond)
 
+	for {
+		// drawing frames
+		renderState(screen, paddleLeft, paddleRight, ball)
+		time.Sleep(50 * time.Millisecond)
+
+		// game update logic - user input process and ball move logic
 		keyPressed := getKeyPressed(keyPressedChan)
-		if keyPressed == "q" {
+		handleKeyPress(screen, keyPressed, paddleLeft, paddleRight)
+
+		// ball movements logic
+		updateBallState(ball, paddleLeft, paddleRight)
+
+		if isGameOver(ball, paddleLeft, paddleRight) {
 			screen.Fini()
 			os.Exit(0)
-			return
-		} else if keyPressed == "up" {
-			if paddleRight.y > 0 {
-				paddleRight.y--
-			}
-		} else if keyPressed == "down" {
-			if paddleRight.y < screenH-paddleHeight {
-				paddleRight.y++
-			}
-		} else if keyPressed == "w" {
-			if paddleLeft.y > 0 {
-				paddleLeft.y--
-			}
-		} else if keyPressed == "s" {
-			if paddleLeft.y < screenH-paddleHeight {
-				paddleLeft.y++
-			}
+			break
 		}
 	}
+}
+
+func isGameOver(ball *Ball, paddleLeft, paddleRight *Paddle) bool {
+	if ball.x < paddleLeft.x || ball.x > paddleRight.x {
+		return true
+	}
+	return false
 }
 
 func getKeyPressed(keyPressedChan chan string) string {
@@ -104,6 +104,49 @@ func getKeyPressed(keyPressedChan chan string) string {
 	return keyPressed
 }
 
+func handleKeyPress(screen tcell.Screen, keyPressed string, paddleLeft, paddleRight *Paddle) {
+	if keyPressed == "q" {
+		screen.Fini()
+		os.Exit(0)
+		return
+	} else if keyPressed == "up" {
+		if paddleRight.y > 0 {
+			paddleRight.y--
+		}
+	} else if keyPressed == "down" {
+		if paddleRight.y < screenH-paddleHeight {
+			paddleRight.y++
+		}
+	} else if keyPressed == "w" {
+		if paddleLeft.y > 0 {
+			paddleLeft.y--
+		}
+	} else if keyPressed == "s" {
+		if paddleLeft.y < screenH-paddleHeight {
+			paddleLeft.y++
+		}
+	}
+}
+
+func updateBallState(ball *Ball, paddleLeft, paddleRight *Paddle) {
+	ball.x += ball.velX
+	ball.y += ball.velY
+
+	if ball.y <= 0 || ball.y >= screenH-1 {
+		ball.velY = -ball.velY
+	}
+
+	if ball.x == paddleLeft.x+1 {
+		if ball.y >= paddleLeft.y-1 && ball.y <= paddleLeft.y+paddleHeight {
+			ball.velX = -ball.velX
+		}
+	} else if ball.x == paddleRight.x-1 {
+		if ball.y >= paddleRight.y-1 && ball.y <= paddleRight.y+paddleHeight {
+			ball.velX = -ball.velX
+		}
+	}
+}
+
 func initState(screen tcell.Screen, paddleLeft, paddleRight *Paddle, ball *Ball) {
 	paddleLeft.y = screenH/2 - paddleHeight/2
 	paddleRight.y = screenH/2 - paddleHeight/2
@@ -111,6 +154,8 @@ func initState(screen tcell.Screen, paddleLeft, paddleRight *Paddle, ball *Ball)
 	paddleRight.x = screenW - 1
 	ball.x = screenW / 2
 	ball.y = screenH / 2
+	ball.velX = -1
+	ball.velY = -1
 	renderState(screen, paddleLeft, paddleRight, ball)
 }
 
