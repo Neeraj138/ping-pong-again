@@ -12,8 +12,6 @@ const paddleHeight int = 6
 const paddleAsset rune = 0x2588
 const ballAsset rune = 0x25CF
 
-var cnt = '0'
-
 var screenH, screenW int
 
 type Paddle struct {
@@ -23,13 +21,6 @@ type Paddle struct {
 type Ball struct {
 	x, y, velX, velY int
 }
-
-// func renderHorizontal(screen tcell.Screen, x, y int, s string, style tcell.Style) {
-// 	for _, ch := range s {
-// 		screen.SetContent(x, y, ch, nil, style)
-// 		x++
-// 	}
-// }
 
 func renderChar(screen tcell.Screen, x, y, w, h int, ch rune, style tcell.Style) {
 	for i := 0; i < w; i++ {
@@ -161,8 +152,6 @@ func initState(screen tcell.Screen, paddleLeft, paddleRight *Paddle, ball *Ball)
 
 func renderState(screen tcell.Screen, paddleLeft, paddleRight *Paddle, ball *Ball) {
 	screen.Clear()
-	screen.SetContent(0, 0, cnt, nil, tcell.StyleDefault)
-	cnt++
 	renderChar(screen, paddleLeft.x, paddleLeft.y, 1, paddleHeight, paddleAsset, tcell.StyleDefault)
 	renderChar(screen, paddleRight.x, paddleRight.y, 1, paddleHeight, paddleAsset, tcell.StyleDefault)
 	renderChar(screen, ball.x, ball.y, 1, 1, ballAsset, tcell.StyleDefault)
